@@ -5,12 +5,13 @@ class NotesController {
 
   async create(request, response) {
     const { title, description, rating, tags } = request.body;
-    const { user_id } = request.params;
+
+    const user_id = request.user.id;
 
     const numberedRating = Number(rating);
-    const ratingNaturalNumber = Number.isInteger(numberedRating);
+    const ratingIsNaturalNumber = Number.isInteger(numberedRating);
 
-    if (!ratingNaturalNumber) {  
+    if (!ratingIsNaturalNumber) {  
       throw new AppError("A avaliação deverá conter um número inteiro (sem vírgulas).");
     
     } else if (rating < 0 || rating > 5) {   
@@ -31,10 +32,8 @@ class NotesController {
 
     await knex("movie_tags").insert(tagsInsert);
 
-    response.json();
+    return response.json();
     }
-
-
   }
 
   async show(request, response) {
@@ -58,7 +57,8 @@ class NotesController {
   }
 
   async index(request, response) {
-    const { user_id, title, description, rating, tags } = request.query;
+    const { title, description, rating, tags } = request.query;
+    const user_id = request.user.id;
 
     let notes;
 
@@ -81,13 +81,13 @@ class NotesController {
     } else {
       
       notes = await knex("movie_notes")
-        .where({ user_id })
+        .where("user_id", user_id)
         .whereLike("title", `%${title}%`)
         .orderBy("title")
     }
     
-    const userTags = await knex("movie_tags").where({ user_id });
-    const notesWithTags = notes.map( note => {
+    const userTags = await knex("movie_tags").where("user_id",user_id);
+    const notesWithTags = notes.map( note => {  
       const noteTags = userTags.filter( tag => tag.note_id === note.id);
 
       return {
@@ -99,7 +99,6 @@ class NotesController {
     
     return response.json(notesWithTags)
   }
-
 }
 
 module.exports = NotesController;
